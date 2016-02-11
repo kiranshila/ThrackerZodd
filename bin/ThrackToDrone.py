@@ -75,6 +75,7 @@ while vehicle.channels['6'] < 1500:
         print "Waiting for user to hit tracking switch"
 
 print "Beginning LED Tracking"
+vehicle.mode.name = 'GUIDED'
 
 # Open Tracking Software
 thracker = subprocess.Popen("./ThrackerZodd",
@@ -84,15 +85,18 @@ thracker = subprocess.Popen("./ThrackerZodd",
 noMarkerPrint = False
 trackingDone = False
 while True:
+	if vehicle.channels['6'] < 1500:
+		print "Waiting for user to hit tracking switch"
+		continue
     # Read each line from ThrackerZodd
     with thracker.stdout:
         for line in iter(thracker.stdout.readline, b''):
             # This code runs FOR EACH line recieved from TZ
             # If the user either switches back the tracking switch
             # or changes the mode, double break
-            if vehicle.channels['6'] < 1500 or vehicle.mode.name == 'GUIDED':
+            if vehicle.channels['6'] < 1500 or vehicle.mode.name != 'GUIDED':
                     print "User has deactivated tacking"
-                    trackingDone = True
+                    # trackingDone = True
                     break
             # Cast read line into float array, divide all by 100 to get meters
             numbers_float = [float(num) for num in line.split()]
@@ -115,12 +119,12 @@ while True:
                 print "Y Velocity is %f" % y_vel
                 print "Z Velocity is %f" % z_vel
                 send_ned_velocity(x_vel, y_vel, z_vel)
-        if trackingDone:
-                break
+        # if trackingDone:
+        #         break
 
 # Loiter Failsafe
 print "Quiting LED Tracking, switching to loiter."
-vehicle.mode = VehicleMode("LOITER")
+vehicle.mode = VehicleMode("LAND")
 
 # Interrupt Tracking Subprocess
 os.kill(thracker.pid, signal.SIGQUIT)
