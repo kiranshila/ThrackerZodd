@@ -7,6 +7,9 @@ public:
 	uchar *data, *t; //brightness values
 	int *nodes, *q, *q2; //things used in blob detection
 	int width, height, numNodes, numQ, numQ2;
+	image() {
+
+	}
 	image(int w, int h) {
 		width = w;
 		height = h;

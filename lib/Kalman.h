@@ -2,7 +2,6 @@
 
 struct kState {
 	float q, r, p, k, x;
-	//float 
 	bool first;
 	kState() {
 		first = true;
@@ -29,6 +28,9 @@ void kUpdate(kState& state, double measurement)	{
 struct vecFilter {
 	kState x_, y_, z_;
 	float x, y, z;
+	vecFilter() {
+
+	}
 	vecFilter(float q, float r) {
 		x_ = kState();
 		kSet(x_, q, r, 0);
@@ -45,13 +47,14 @@ struct vecFilter {
 		kUpdate(z_, iz);
 		z = z_.x;
 	}
-	std::string print() {
+	std::string print(float coeff) {
 		std::string out = "";
-		out += to_string(x);
-		out += ", ";
-		out += to_string(y);
-		out += ", ";
-		out += to_string(z);
+		out += std::to_string(x*coeff);
+		out += " ";
+		out += std::to_string(y*coeff);
+		out += " ";
+		out += std::to_string(z*coeff);
+		//out += "!";
 		return out;
 	}
 };
