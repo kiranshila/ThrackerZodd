@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define _draw_
+//#define _draw_
 
 Tracker T;
 

@@ -11,8 +11,9 @@ from PID import PID
 from subprocess import call
 import subprocess
 import signal
+import os
 # If simulated vehicle
-import dronekit_sitl
+# import dronekit_sitl
 from dronekit import connect, VehicleMode
 
 
@@ -44,13 +45,13 @@ pid_yaw = PID(-1, 0, 0)
 call(["clear"])
 
 # For Simulated Drone
-print "Starting Simulator"
-sitl = dronekit_sitl.start_default()
-connection_string = sitl.connection_string()
+# print "Starting Simulator"
+# sitl = dronekit_sitl.start_default()
+# connection_string = sitl.connection_string()
 
 # For Real Drone
-# print "Connecting to Drone"
-# connection_string = "/dev/ttyUSB0"
+print "Connecting to Drone"
+connection_string = "/dev/ttyUSB0"
 
 # Connect to the Vehicle.
 print("Connecting to vehicle on: %s" % (connection_string,))
@@ -68,7 +69,7 @@ print " Mode: %s" % vehicle.mode.name    # settable
 # Get all channel values from RC transmitter
 # print "Channel values from RC Tx:", vehicle.channels
 printOnce = True
-while vehicle.channels['6'] < 1500:  # FIXME
+while vehicle.channels['6'] < 1500:
     if printOnce:
         printOnce = False
         print "Waiting for user to hit tracking switch"
@@ -89,7 +90,7 @@ while True:
             # This code runs FOR EACH line recieved from TZ
             # If the user either switches back the tracking switch
             # or changes the mode, double break
-            if vehicle.channel['6'] < 1500 or vehicle.mode.name == 'GUIDED':
+            if vehicle.channels['6'] < 1500 or vehicle.mode.name == 'GUIDED':
                     print "User has deactivated tacking"
                     trackingDone = True
                     break
@@ -122,9 +123,9 @@ print "Quiting LED Tracking, switching to loiter."
 vehicle.mode = VehicleMode("LOITER")
 
 # Interrupt Tracking Subprocess
-thracker.kill(thracker.pid, signal.SIGINT)
+os.kill(thracker.pid, signal.SIGQUIT)
 
 # Close vehicle object before exiting script
 print "Tracking Complete"
 vehicle.close()
-sitl.complete()
+# sitl.complete()
