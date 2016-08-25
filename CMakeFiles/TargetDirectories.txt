@@ -1,3 +1,0 @@
-/Users/kiranshila/Desktop/thracker_zod/CMakeFiles/edit_cache.dir
-/Users/kiranshila/Desktop/thracker_zod/CMakeFiles/rebuild_cache.dir
-/Users/kiranshila/Desktop/thracker_zod/CMakeFiles/ThrackerZodd.dir
