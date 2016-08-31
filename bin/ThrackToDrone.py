@@ -34,6 +34,64 @@ def send_ned_velocity(velocity_x, velocity_y, velocity_z):
         0, 0)    # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink)
     vehicle.send_mavlink(msg)
 
+
+def track():
+    printOnce = True
+    while vehicle.channels['6'] < 1500:
+        if printOnce:
+            printOnce = False
+            print "Waiting for user to hit tracking switch"
+
+    print "Beginning LED Tracking"
+
+    # Open Tracking Software
+    thracker = subprocess.Popen("./ThrackerZodd",
+                                stdout=subprocess.PIPE, shell=False)
+    vehicle.mode = VehicleMode('GUIDED')
+    while not vehicle.mode.name == 'GUIDED':
+        print "Waiting for drone to switch to GUIDED"
+        time.sleep(1)
+    # Begin Tracking Loop
+    noMarkerPrint = False
+    trackingDone = False
+    while True:
+        # Read each line from ThrackerZodd
+        with thracker.stdout:
+            for line in iter(thracker.stdout.readline, b''):
+                # This code runs FOR EACH line recieved from TZ
+                # If the user either switches back the tracking switch
+                # or changes the mode, double break
+                if vehicle.channels['6'] < 1500 or not vehicle.mode.name == 'GUIDED':
+                        print "User has deactivated tacking"
+                        trackingDone = True
+                        break
+                # Cast read line into float array, divide all by 100 to get meters
+                numbers_float = [float(num) for num in line.split()]
+                conversionFactor = 100
+                numbers_meters = [x / conversionFactor for x in numbers_float]
+                # If all zero, no marker was found. Print that once
+                if (numbers_float[0] == 0 and numbers_float[1] == 0 and numbers_float[2] == 0):
+                    if not noMarkerPrint:
+                        noMarkerPrint = True
+                        print "No Marker Found."
+                    send_ned_velocity(0, 0, 0)
+                else:
+                    # Put the positions in meters into PID generator
+                    # Get velocities to center quad at 0,0,
+                    noMarkerPrint = False
+                    x_vel = pid_x.GenOut(numbers_meters[2] - 1)
+                    y_vel = pid_y.GenOut(numbers_meters[0])
+                    z_vel = pid_z.GenOut(numbers_meters[1])
+                    print "X Velocity is %f" % x_vel
+                    print "Y Velocity is %f" % y_vel
+                    print "Z Velocity is %f" % z_vel
+                    send_ned_velocity(x_vel, y_vel, z_vel)
+            if trackingDone:
+                    break
+    # Loiter Failsafe
+    print "Halting LED Tracking, switching to loiter."
+    vehicle.mode = VehicleMode("LOITER")
+
 # Create PID Object
 pid_x = PID(-1, 0, 0)
 pid_y = PID(-1, 0, 0)
@@ -54,62 +112,9 @@ vehicle = connect(connection_string, wait_ready=True, baud=1500000)
 print " System status: %s" % vehicle.system_status.state
 print " Mode: %s" % vehicle.mode.name    # settable
 
-# Get all channel values from RC transmitter
-# print "Channel values from RC Tx:", vehicle.channels
-printOnce = True
-while vehicle.channels['6'] < 1500:
-    if printOnce:
-        printOnce = False
-        print "Waiting for user to hit tracking switch"
-
-print "Beginning LED Tracking"
-
-# Open Tracking Software
-thracker = subprocess.Popen("./ThrackerZodd",
-                            stdout=subprocess.PIPE, shell=False)
-vehicle.mode = VehicleMode('GUIDED')
-while not vehicle.mode.name == 'GUIDED':
-    print "Waiting for drone to switch to GUIDED"
-    time.sleep(1)
-# Begin Tracking Loop
-noMarkerPrint = False
-trackingDone = False
+# Infinite Loop
 while True:
-    # Read each line from ThrackerZodd
-    with thracker.stdout:
-        for line in iter(thracker.stdout.readline, b''):
-            # This code runs FOR EACH line recieved from TZ
-            # If the user either switches back the tracking switch
-            # or changes the mode, double break
-            if vehicle.channels['6'] < 1500 or not vehicle.mode.name == 'GUIDED':
-                    print "User has deactivated tacking"
-                    trackingDone = True
-                    break
-            # Cast read line into float array, divide all by 100 to get meters
-            numbers_float = [float(num) for num in line.split()]
-            conversionFactor = 100
-            numbers_meters = [x / conversionFactor for x in numbers_float]
-            # If all zero, no marker was found. Print that once
-            if (numbers_float[0] == 0 and numbers_float[1] == 0 and numbers_float[2] == 0):
-                if not noMarkerPrint:
-                    noMarkerPrint = True
-                    print "No Marker Found."
-                send_ned_velocity(0, 0, 0)
-            else:
-                # Put the positions in meters into PID generator
-                # Get velocities to center quad at 0,0,
-                noMarkerPrint = False
-                x_vel = pid_x.GenOut(numbers_meters[2] - 1)
-                y_vel = pid_y.GenOut(numbers_meters[0])
-                z_vel = pid_z.GenOut(numbers_meters[1])
-                print "X Velocity is %f" % x_vel
-                print "Y Velocity is %f" % y_vel
-                print "Z Velocity is %f" % z_vel
-                send_ned_velocity(x_vel, y_vel, z_vel)
-        if trackingDone:
-                break
-# Loiter Failsafe
-print "Halting LED Tracking, switching to loiter."
-vehicle.mode = VehicleMode("LOITER")
+    track()
+
 # Interrupt Tracking Subprocess
 os.kill(thracker.pid, signal.SIGQUIT)
