@@ -12,6 +12,7 @@ from subprocess import call
 import subprocess
 import signal
 import os
+import time
 # If simulated vehicle
 # import dronekit_sitl
 from dronekit import connect, VehicleMode
@@ -79,7 +80,10 @@ print "Beginning LED Tracking"
 # Open Tracking Software
 thracker = subprocess.Popen("./ThrackerZodd",
                             stdout=subprocess.PIPE, shell=False)
-
+vehicle.mode = VehicleMode('GUIDED')
+while not vehicle.mode.name == 'GUIDED':
+	print "Waiting for drone to switch to GUIDED"
+	time.sleep(1)
 # Begin Tracking Loop
 noMarkerPrint = False
 trackingDone = False
@@ -90,7 +94,7 @@ while True:
             # This code runs FOR EACH line recieved from TZ
             # If the user either switches back the tracking switch
             # or changes the mode, double break
-            if vehicle.channels['6'] < 1500 or vehicle.mode.name == 'GUIDED':
+            if vehicle.channels['6'] < 1500 or not vehicle.mode.name == 'GUIDED':
                     print "User has deactivated tacking"
                     trackingDone = True
                     break
